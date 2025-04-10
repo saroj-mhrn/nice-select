@@ -195,7 +195,7 @@
             var text =
               $selected_option.data("display") || $selected_option.text();
             $selected_html += `<span class="current" data-id=${attrValue}> ${text} <span class="remove">&#10006;</span></span>`;
-            $selected_values.push($selected_option.data("value"));
+            $selected_values.push(attrValue);
           });
           $select_placeholder =
             $dropdown.prev("select").data("js-placeholder") ||
