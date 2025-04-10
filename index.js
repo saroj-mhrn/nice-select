@@ -178,6 +178,7 @@
 
           $select.val($option.data("value")).trigger("change");
           $dropdown.removeClass("open");
+          event.stopPropagation();
         }
       }
     );
