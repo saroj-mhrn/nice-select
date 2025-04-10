@@ -1,3 +1,7 @@
+/*  jQuery Nice Select - v1.1.0
+    https://github.com/hernansartorio/jquery-nice-select
+    Made by Hernán Sartorio  */
+
 (function ($) {
   $.fn.niceSelect = function (method) {
     // Methods
@@ -54,42 +58,24 @@
           .addClass("nice-select")
           .addClass($select.attr("class") || "")
           .addClass($select.attr("disabled") ? "disabled" : "")
-          .addClass($select.attr("multiple") ? "has-multiple" : "")
+          .addClass($select.prop("multiple") ? "has-multiple" : "")
           .attr("tabindex", $select.attr("disabled") ? null : "0")
-          .html(
-            $select.attr("multiple")
-              ? '<span class="multiple-options"></span><div class="nice-drop"><div class="nice-select-search-box"><input type="text" class="nice-select-search" placeholder="Search..."/></div><ul class="list"></ul></div>'
-              : '<span class="current"></span><div class="nice-drop"><div class="nice-select-search-box"><input type="text" class="nice-select-search" placeholder="Search..."/></div><ul class="list"></ul></div>'
-          )
+          .html('<span class="current"></span><ul class="list"></ul>')
       );
 
       var $dropdown = $select.next();
       var $options = $select.find("option");
-      if ($select.attr("multiple")) {
-        var $selected = $select.find("option:selected");
-        var $selected_html = "";
+      var $selected = $select.find("option:selected");
+
+      if ($select.prop("multiple")) {
+        var selected = [];
         $selected.each(function () {
-          $selected_option = $(this);
-          $selected_text =
-            $selected_option.data("display") || $selected_option.text();
-
-          if (!$selected_option.val()) {
-            return;
-          }
-
-          $selected_html +=
-            '<span class="current">' + $selected_text + "</span>";
+          selected.push($(this).data("display") || $(this).text());
         });
-        $select_placeholder =
-          $select.data("js-placeholder") || $select.attr("js-placeholder");
-        $select_placeholder = !$select_placeholder
-          ? "Select..."
-          : $select_placeholder;
-        $selected_html =
-          $selected_html === "" ? $select_placeholder : $selected_html;
-        $dropdown.find(".multiple-options").html($selected_html);
+        $dropdown
+          .find(".current")
+          .html(selected.length ? selected.join(", ") : "Select Options");
       } else {
-        var $selected = $select.find("option:selected");
         $dropdown
           .find(".current")
           .html($selected.data("display") || $selected.text());
@@ -98,16 +84,23 @@
       $options.each(function (i) {
         var $option = $(this);
         var display = $option.data("display");
+        var value = $option.val();
+
+        var isSelected =
+          $option.is(":selected") && value !== "" && $select.prop("multiple")
+            ? " selected"
+            : $option.is(":selected") && !$select.prop("multiple")
+            ? " selected"
+            : "";
 
         $dropdown.find("ul").append(
           $("<li></li>")
-            .attr("data-value", $option.val())
+            .attr("data-value", value)
             .attr("data-display", display || null)
             .addClass(
               "option" +
-                ($option.is(":selected") ? " selected" : "") +
-                ($option.is(":disabled") ? " disabled" : "") +
-                (!$option.val() ? " no-value" : "")
+                isSelected +
+                ($option.is(":disabled") ? " disabled" : "")
             )
             .html($option.text())
         );
@@ -128,42 +121,11 @@
 
       if ($dropdown.hasClass("open")) {
         $dropdown.find(".option");
-        $dropdown.find(".nice-select-search").val("");
-        $dropdown.find(".nice-select-search").focus();
         $dropdown.find(".focus").removeClass("focus");
         $dropdown.find(".selected").addClass("focus");
-        $dropdown.find("ul li").show();
       } else {
         $dropdown.focus();
       }
-    });
-
-    $(document).on("click", ".nice-select-search-box", function (event) {
-      event.stopPropagation();
-      return false;
-    });
-    $(document).on("keyup.nice-select-search", ".nice-select", function () {
-      var $self = $(this);
-      var $text = $self.find(".nice-select-search").val();
-      var $options = $self.find("ul li");
-      if ($text == "") $options.show();
-      else if ($self.hasClass("open")) {
-        $text = $text.toLowerCase();
-        var $matchReg = new RegExp($text);
-        if (0 < $options.length) {
-          $options.each(function () {
-            var $this = $(this);
-            var $optionText = $this.text().toLowerCase();
-            var $matchCheck = $matchReg.test($optionText);
-            $matchCheck ? $this.show() : $this.hide();
-          });
-        } else {
-          $options.show();
-        }
-      }
-      $self.find(".option"),
-        $self.find(".focus").removeClass("focus"),
-        $self.find(".selected").addClass("focus");
     });
 
     // Close when clicking outside
@@ -180,60 +142,45 @@
       function (event) {
         var $option = $(this);
         var $dropdown = $option.closest(".nice-select");
-        if ($dropdown.hasClass("has-multiple")) {
-          if ($option.hasClass("selected")) {
-            $option.removeClass("selected");
-          } else {
-            $option.addClass("selected");
-            $dropdown.find(".option.no-value").removeClass("selected");
+        var $select = $dropdown.prev("select");
+
+        if ($select.prop("multiple")) {
+          event.stopPropagation();
+
+          if (!$option.data("value")) {
+            return;
           }
-          $selected_html = "";
-          $selected_values = [];
+
+          $option.toggleClass("selected");
+
+          var selectedValues = [];
+          var selectedTexts = [];
           $dropdown.find(".selected").each(function () {
-            $selected_option = $(this);
-            var attrValue = $selected_option.data("value");
-            var text =
-              $selected_option.data("display") || $selected_option.text();
-            $selected_html += `<span class="current" data-id=${attrValue}> ${text} <span class="remove">&#10006;</span></span>`;
-            $selected_values.push(attrValue);
+            if ($(this).data("value")) {
+              selectedValues.push($(this).data("value"));
+              selectedTexts.push($(this).data("display") || $(this).text());
+            }
           });
-          $select_placeholder =
-            $dropdown.prev("select").data("js-placeholder") ||
-            $dropdown.prev("select").attr("js-placeholder");
-          $select_placeholder = !$select_placeholder ? "" : $select_placeholder;
-          $selected_html =
-            $selected_html === "" ? $select_placeholder : $selected_html;
-          $dropdown.find(".multiple-options").html($selected_html);
-          $dropdown.prev("select").val($selected_values).trigger("change");
+
+          $dropdown
+            .find(".current")
+            .html(
+              selectedTexts.length ? selectedTexts.join(", ") : "Select Options"
+            );
+          $select.val(selectedValues).trigger("change");
         } else {
+          // Original single select behavior
           $dropdown.find(".selected").removeClass("selected");
           $option.addClass("selected");
+
           var text = $option.data("display") || $option.text();
           $dropdown.find(".current").text(text);
-          $dropdown.prev("select").val($option.data("value")).trigger("change");
+
+          $select.val($option.data("value")).trigger("change");
+          $dropdown.removeClass("open");
         }
       }
     );
-    //---------remove item
-    $(document).on("click", ".remove", function () {
-      var $dropdown = $(this).parents(".nice-select");
-      var clickedId = $(this).parent().data("id");
-      var $selected_values = $dropdown.prev("select").val() || []; // Ensure $selected_values is defined
-
-      $dropdown.find(".list li").each(function (index, item) {
-        if (clickedId == $(item).attr("data-value")) {
-          $(item).removeClass("selected");
-        }
-      });
-
-      // Update $selected_values array
-      $selected_values = $selected_values.filter(function (item) {
-        return item !== clickedId;
-      });
-
-      $(this).parent().remove();
-      $dropdown.prev("select").val($selected_values).trigger("change");
-    });
 
     // Keyboard events
     $(document).on("keydown.nice_select", ".nice-select", function (event) {
